@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import requests
 import json, sys, time, hmac, hashlib
+from tools import *
 
 API_KEY = ""
 API_SECRET = ""
@@ -26,32 +27,32 @@ class BitflyerBot:
         print(response)
 
     # 板情報を取得
-    def get_board(self, product_code: str=None):
+    def get_board(self, product_code: ProductCode):
         params = {"product_code": product_code}
         response = self.get_request("/v1/getboard", params=params).json()
         print(response)
 
     # Tickerを取得
-    def get_ticker(self, product_code: str=None):
+    def get_ticker(self, product_code: ProductCode):
         params = {"product_code": product_code}
         response = self.get_request("/v1/getticker", params=params).json()
         print(response)
 
     # 約定履歴
     # TODO: before, afterの実装
-    def get_executions(self, product_code: str=None):
+    def get_executions(self, product_code: ProductCode):
         params = {"product_code": product_code}
         response = self.get_request("/v1/getexecutions", params=params).json()
         print(response)
 
     # 板の状態
-    def get_board_state(self, product_code: str=None):
+    def get_board_state(self, product_code: ProductCode):
         params = {"product_code": product_code}
         response = self.get_request("/v1/getboardstate", params=params).json()
         print(response)
 
     # 取引所の状態
-    def get_health(self, product_code: str=None):
+    def get_health(self, product_code: ProductCode):
         params = {"product_code": product_code}
         response = self.get_request("/v1/gethealth", params=params).json()
         print(response)
@@ -99,6 +100,15 @@ class BitflyerBot:
         response = self.get_request(endpoint=endpoint, params=body, headers=headers).json()
         print(response)
 
+    # 新規注文を出す
+    def send_child_order(self, child_order: ChildOrder):
+        method = "POST"
+        endpoint = "/v1/me/sendchildorder"
+        body = child_order.to_body().__str__()
+        headers = self.create_private_header(method=method, endpoint=endpoint, body=body)
+        response = self.post_request(endpoint=endpoint, params=body, headers=headers).json()
+        print(response)
+
     # Private API用のヘッダーを作成
     def create_private_header(self, method, endpoint, body):
         if self.api_key and self.api_secret:
@@ -118,6 +128,7 @@ class BitflyerBot:
         else:
             sys.exit()
 
+    # GETメソッド用
     def get_request(self, endpoint, params=None, headers=None):
         url = BASE_URL.format(endpoint)
         while True:
@@ -134,6 +145,7 @@ class BitflyerBot:
                 else:
                     sys.exit(e)
 
+    # POSTメソッド用
     def post_request(self, endpoint, params=None, headers=None):
         url = BASE_URL.format(endpoint)
         while True:
@@ -150,18 +162,25 @@ class BitflyerBot:
                 else:
                     sys.exit(e)
 
-
-
 if __name__ == "__main__":
     bitflyer_bot = BitflyerBot(api_key=API_KEY, api_secret=API_SECRET)
-    bitflyer_bot.get_markets()
-    bitflyer_bot.get_board("FX_BTC_JPY")
-    bitflyer_bot.get_ticker("FX_BTC_JPY")
-    bitflyer_bot.get_executions("FX_BTC_JPY")
-    bitflyer_bot.get_board_state("FX_BTC_JPY")
-    bitflyer_bot.get_health("FX_BTC_JPY")
+    # bitflyer_bot.get_markets()
+    # bitflyer_bot.get_board()
+    # bitflyer_bot.get_ticker(ProductCode.btc_fx)
+    # bitflyer_bot.get_executions(ProductCode.btc_fx)
+    # bitflyer_bot.get_board_state(ProductCode.btc_fx)
+    # bitflyer_bot.get_health(ProductCode.btc_fx)
     # bitflyer_bot.get_chats()
-    bitflyer_bot.get_permissions()
-    bitflyer_bot.get_balance()
-    bitflyer_bot.get_collateral()
-    bitflyer_bot.get_collateralaccounts()
+    # bitflyer_bot.get_permissions()
+    # bitflyer_bot.get_balance()
+    # bitflyer_bot.get_collateral()
+    # bitflyer_bot.get_collateralaccounts()
+    child_order = ChildOrder(product_code=ProductCode.btc_fx,
+                             child_order_type=ChildOrderType.limit,
+                             side=Side.buy,
+                             price=500000,
+                             size=0.1,
+                             minute_to_expire=43200,
+                             time_in_force=TimeInForce.good_till_canceled
+    )
+    bitflyer_bot.send_child_order(child_order=child_order)
